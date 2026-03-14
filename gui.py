@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,23 +23,25 @@ class NeuralNetSimulatorGUI:
         self.root.geometry("1600x900")
         
         # Style
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
         
         # --- Main Layout ---
         self.create_menu()
         
-        self.main_pane = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        self.main_pane.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=4)
+        self.root.grid_columnconfigure(2, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
         
-        self.left_panel = ttk.Frame(self.main_pane, width=300)
-        self.main_pane.add(self.left_panel, weight=1)
+        self.left_panel = ctk.CTkScrollableFrame(self.root, width=300, corner_radius=10)
+        self.left_panel.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         
-        self.center_panel = ttk.Frame(self.main_pane, width=800)
-        self.main_pane.add(self.center_panel, weight=4)
+        self.center_panel = ctk.CTkFrame(self.root, corner_radius=10)
+        self.center_panel.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         
-        self.right_panel = ttk.Frame(self.main_pane, width=300)
-        self.main_pane.add(self.right_panel, weight=1)
+        self.right_panel = ctk.CTkFrame(self.root, width=300, corner_radius=10)
+        self.right_panel.grid(row=0, column=2, padx=10, pady=10, sticky="nsew")
         
         self.setup_left_panel()
         self.setup_center_panel()
@@ -124,116 +127,122 @@ class NeuralNetSimulatorGUI:
 
     def setup_left_panel(self):
         # -- Algorithm Selection --
-        algo_labelframe = ttk.LabelFrame(self.left_panel, text="Algorithm Selection")
-        algo_labelframe.pack(fill=tk.X, padx=5, pady=5)
+        algo_label = ctk.CTkLabel(self.left_panel, text="Algorithm Selection", font=ctk.CTkFont(size=16, weight="bold"))
+        algo_label.pack(fill=tk.X, padx=5, pady=(5, 10))
         
-        self.algo_var = tk.StringVar(value="Perceptron")
-        ttk.Radiobutton(algo_labelframe, text="Perceptron", variable=self.algo_var, value="Perceptron").pack(anchor=tk.W)
-        ttk.Radiobutton(algo_labelframe, text="Adaline", variable=self.algo_var, value="Adaline").pack(anchor=tk.W)
-        ttk.Radiobutton(algo_labelframe, text="Multi-Layer Perceptron (MLP)", variable=self.algo_var, value="MLP").pack(anchor=tk.W)
+        self.algo_var = ctk.StringVar(value="Perceptron")
+        ctk.CTkRadioButton(self.left_panel, text="Perceptron", variable=self.algo_var, value="Perceptron").pack(anchor=tk.W, pady=2)
+        ctk.CTkRadioButton(self.left_panel, text="Adaline", variable=self.algo_var, value="Adaline").pack(anchor=tk.W, pady=2)
+        ctk.CTkRadioButton(self.left_panel, text="MLP", variable=self.algo_var, value="MLP").pack(anchor=tk.W, pady=(2, 10))
         
         # -- Hyperparameters --
-        hp_labelframe = ttk.LabelFrame(self.left_panel, text="Hyperparameters")
-        hp_labelframe.pack(fill=tk.X, padx=5, pady=5)
+        hp_label = ctk.CTkLabel(self.left_panel, text="Hyperparameters", font=ctk.CTkFont(size=16, weight="bold"))
+        hp_label.pack(fill=tk.X, padx=5, pady=(15, 10))
         
-        ttk.Label(hp_labelframe, text="Learning Rate (η):").pack(anchor=tk.W)
-        self.lr_scale = tk.Scale(hp_labelframe, from_=0.0001, to=1.0, resolution=0.001, orient=tk.HORIZONTAL)
+        ctk.CTkLabel(self.left_panel, text="Learning Rate (η):").pack(anchor=tk.W)
+        self.lr_scale = ctk.CTkSlider(self.left_panel, from_=0.0001, to=1.0, number_of_steps=1000)
         self.lr_scale.set(0.01)
-        self.lr_scale.pack(fill=tk.X)
+        self.lr_scale.pack(fill=tk.X, pady=(0, 10))
         
-        ttk.Label(hp_labelframe, text="Epochs:").pack(anchor=tk.W)
-        self.epochs_entry = ttk.Entry(hp_labelframe)
+        ctk.CTkLabel(self.left_panel, text="Epochs:").pack(anchor=tk.W)
+        self.epochs_entry = ctk.CTkEntry(self.left_panel)
         self.epochs_entry.insert(0, "50")
-        self.epochs_entry.pack(fill=tk.X)
+        self.epochs_entry.pack(fill=tk.X, pady=(0, 10))
         
         # -- MLP Specific --
-        mlp_labelframe = ttk.LabelFrame(self.left_panel, text="MLP Config")
-        mlp_labelframe.pack(fill=tk.X, padx=5, pady=5)
+        mlp_label = ctk.CTkLabel(self.left_panel, text="MLP Config", font=ctk.CTkFont(size=16, weight="bold"))
+        mlp_label.pack(fill=tk.X, padx=5, pady=(15, 10))
         
-        ttk.Label(mlp_labelframe, text="Hidden Layers (e.g., 4):").pack(anchor=tk.W)
-        self.hidden_layers_entry = ttk.Entry(mlp_labelframe)
+        ctk.CTkLabel(self.left_panel, text="Hidden Layers (e.g., 4):").pack(anchor=tk.W)
+        self.hidden_layers_entry = ctk.CTkEntry(self.left_panel)
         self.hidden_layers_entry.insert(0, "4")
-        self.hidden_layers_entry.pack(fill=tk.X)
+        self.hidden_layers_entry.pack(fill=tk.X, pady=(0, 10))
         
-        ttk.Label(mlp_labelframe, text="Activation:").pack(anchor=tk.W)
-        self.activation_var = tk.StringVar(value="Sigmoid")
+        ctk.CTkLabel(self.left_panel, text="Activation:").pack(anchor=tk.W)
+        self.activation_var = ctk.StringVar(value="Sigmoid")
         activations = ["Sigmoid", "Tanh", "ReLU"]
-        ttk.OptionMenu(mlp_labelframe, self.activation_var, activations[0], *activations).pack(fill=tk.X)
+        ctk.CTkOptionMenu(self.left_panel, variable=self.activation_var, values=activations).pack(fill=tk.X, pady=(0, 10))
 
         # -- Dataset --
-        data_labelframe = ttk.LabelFrame(self.left_panel, text="Dataset")
-        data_labelframe.pack(fill=tk.X, padx=5, pady=5)
+        data_label = ctk.CTkLabel(self.left_panel, text="Dataset", font=ctk.CTkFont(size=16, weight="bold"))
+        data_label.pack(fill=tk.X, padx=5, pady=(15, 10))
         
-        self.dataset_var = tk.StringVar(value="Linear")
+        self.dataset_var = ctk.StringVar(value="Linear")
         datasets = ["Linear", "AND", "OR", "XOR", "Circles", "Moons", "Spiral", "Manual"]
-        ttk.OptionMenu(data_labelframe, self.dataset_var, datasets[0], *datasets).pack(fill=tk.X)
+        ctk.CTkOptionMenu(self.left_panel, variable=self.dataset_var, values=datasets).pack(fill=tk.X, pady=(0, 10))
         
-        ttk.Button(data_labelframe, text="Generate/Load Data", command=self.generate_data).pack(fill=tk.X, pady=5)
-        ttk.Label(data_labelframe, text="(Manual: L-Click=0, R-Click=1)", font=("Arial", 8)).pack(anchor=tk.W)
+        ctk.CTkButton(self.left_panel, text="Generate/Load Data", command=self.generate_data).pack(fill=tk.X, pady=10)
+        ctk.CTkLabel(self.left_panel, text="(Manual: L-Click=0, R-Click=1)", font=("Arial", 10)).pack(anchor=tk.W)
 
 
     def setup_center_panel(self):
         # Tabs for Decision Boundary, Network, Loss
-        self.notebook = ttk.Notebook(self.center_panel)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        self.notebook = ctk.CTkTabview(self.center_panel)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Tab 1: Decision Boundary
-        self.tab_boundary = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_boundary, text="Decision Boundary")
+        self.tab_boundary = self.notebook.add("Decision Boundary")
+        
+        # Set dark style for matplotlib
+        plt.style.use('dark_background')
         
         self.fig_boundary = plt.Figure(figsize=(5, 4), dpi=100)
+        self.fig_boundary.patch.set_facecolor('#2b2b2b')
         self.ax_boundary = self.fig_boundary.add_subplot(111)
+        self.ax_boundary.set_facecolor('#2b2b2b')
         self.canvas_boundary = FigureCanvasTkAgg(self.fig_boundary, self.tab_boundary)
         self.canvas_boundary.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Tab 2: Network Architecture
-        self.tab_network = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_network, text="Network Architecture")
+        self.tab_network = self.notebook.add("Network Architecture")
         
         self.fig_network = plt.Figure(figsize=(5, 4), dpi=100)
+        self.fig_network.patch.set_facecolor('#2b2b2b')
         self.ax_network = self.fig_network.add_subplot(111)
+        self.ax_network.set_facecolor('#2b2b2b')
         self.canvas_network = FigureCanvasTkAgg(self.fig_network, self.tab_network)
         self.canvas_network.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Tab 3: History
-        self.tab_loss = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_loss, text="Metrics")
+        self.tab_loss = self.notebook.add("Metrics")
         
         self.fig_loss = plt.Figure(figsize=(5, 4), dpi=100)
+        self.fig_loss.patch.set_facecolor('#2b2b2b')
         self.ax_loss = self.fig_loss.add_subplot(111)
+        self.ax_loss.set_facecolor('#2b2b2b')
         self.canvas_loss = FigureCanvasTkAgg(self.fig_loss, self.tab_loss)
         self.canvas_loss.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # Playback Controls
-        controls_frame = ttk.Frame(self.center_panel)
-        controls_frame.pack(fill=tk.X, padx=5, pady=5)
+        controls_frame = ctk.CTkFrame(self.center_panel, fg_color="transparent")
+        controls_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        self.btn_start = ttk.Button(controls_frame, text="Start Training", command=self.start_training)
-        self.btn_start.pack(side=tk.LEFT, padx=5)
+        self.btn_start = ctk.CTkButton(controls_frame, text="Start Training", command=self.start_training, fg_color="#2ecc71", hover_color="#27ae60", text_color="white")
+        self.btn_start.pack(side=tk.LEFT, padx=10)
         
-        self.btn_stop = ttk.Button(controls_frame, text="Stop", command=self.stop_training, state=tk.DISABLED)
-        self.btn_stop.pack(side=tk.LEFT, padx=5)
+        self.btn_stop = ctk.CTkButton(controls_frame, text="Stop", command=self.stop_training, state=tk.DISABLED, fg_color="#e74c3c", hover_color="#c0392b", text_color="white")
+        self.btn_stop.pack(side=tk.LEFT, padx=10)
         
-        ttk.Button(controls_frame, text="Reset", command=self.reset_simulation).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(controls_frame, text="Reset", command=self.reset_simulation, fg_color="#f39c12", hover_color="#d68910", text_color="white").pack(side=tk.LEFT, padx=10)
 
     def setup_right_panel(self):
-        stats_labelframe = ttk.LabelFrame(self.right_panel, text="Training Stats")
-        stats_labelframe.pack(fill=tk.X, padx=5, pady=5)
+        stats_label = ctk.CTkLabel(self.right_panel, text="Training Stats", font=ctk.CTkFont(size=16, weight="bold"))
+        stats_label.pack(fill=tk.X, padx=10, pady=(10, 5))
         
-        self.epoch_label = ttk.Label(stats_labelframe, text="Epoch: 0")
-        self.epoch_label.pack(anchor=tk.W)
+        self.epoch_label = ctk.CTkLabel(self.right_panel, text="Epoch: 0", font=ctk.CTkFont(size=14))
+        self.epoch_label.pack(anchor=tk.W, padx=10, pady=2)
         
-        self.loss_label = ttk.Label(stats_labelframe, text="Loss: N/A")
-        self.loss_label.pack(anchor=tk.W)
+        self.loss_label = ctk.CTkLabel(self.right_panel, text="Loss: N/A", font=ctk.CTkFont(size=14))
+        self.loss_label.pack(anchor=tk.W, padx=10, pady=2)
         
-        self.acc_label = ttk.Label(stats_labelframe, text="Accuracy: N/A")
-        self.acc_label.pack(anchor=tk.W)
+        self.acc_label = ctk.CTkLabel(self.right_panel, text="Accuracy: N/A", font=ctk.CTkFont(size=14))
+        self.acc_label.pack(anchor=tk.W, padx=10, pady=2)
         
-        log_labelframe = ttk.LabelFrame(self.right_panel, text="Event Log")
-        log_labelframe.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        log_label = ctk.CTkLabel(self.right_panel, text="Event Log", font=ctk.CTkFont(size=16, weight="bold"))
+        log_label.pack(fill=tk.X, padx=10, pady=(20, 5))
         
-        self.log_text = tk.Text(log_labelframe, height=20, width=30, state='disabled')
-        self.log_text.pack(fill=tk.BOTH, expand=True)
+        self.log_text = ctk.CTkTextbox(self.right_panel, height=200, state='disabled', corner_radius=10)
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
     def log_message(self, msg):
         self.log_text.config(state='normal')
