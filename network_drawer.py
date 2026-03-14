@@ -62,8 +62,11 @@ class NetworkDrawer:
                     x2, y2 = self.node_positions[i+1][k]
                     
                     weight_val = w[j, k]
-                    color = 'red' if weight_val > 0 else 'blue'
+                    # Use vibrant glowing colors for weights
+                    color = '#ff3366' if weight_val < 0 else '#00ffcc' # Red for negative, Cyan for positive
                     alpha = min(abs(weight_val) / w_max, 1.0)
-                    width = abs(weight_val) / w_max * 2.0 + 0.1
+                    # Boost minimum opacity so lines are always visible on dark bg
+                    alpha = max(alpha, 0.2)
+                    width = abs(weight_val) / w_max * 3.0 + 0.5 # Thicker lines
                     
                     self.ax.plot([x1, x2], [y1, y2], c=color, linewidth=width, alpha=alpha, zorder=1)

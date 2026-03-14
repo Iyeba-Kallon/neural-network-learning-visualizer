@@ -92,7 +92,7 @@ class NeuralNetSimulatorGUI:
         # Re-plot
         self.ax_boundary.clear()
         markers = ('o', 's')
-        colors = ('red', 'blue')
+        colors = ('#ff3333', '#33adff') # Dark theme friendly colors
         
         # Helper to plot raw data
         for idx, cl in enumerate(np.unique(self.y)):
@@ -102,15 +102,24 @@ class NeuralNetSimulatorGUI:
             
             self.ax_boundary.scatter(x=self.X[self.y == cl, 0], 
                             y=self.X[self.y == cl, 1],
-                            alpha=0.8, 
+                            alpha=0.9, 
                             c=colors[c_idx],
                             marker=markers[m_idx], 
                             label=f'Class {cl}', 
-                            edgecolor='black')
+                            edgecolor='white',
+                            s=60)
         
         self.ax_boundary.set_xlim(min(self.X[:,0])-1, max(self.X[:,0])+1)
         self.ax_boundary.set_ylim(min(self.X[:,1])-1, max(self.X[:,1])+1)
-        self.ax_boundary.legend(loc='upper left')
+        self.ax_boundary.tick_params(colors='white')
+        
+        legend = self.ax_boundary.legend(loc='upper left', frameon=True)
+        frame = legend.get_frame()
+        frame.set_facecolor('#2b2b2b')
+        frame.set_edgecolor('#555555')
+        for text in legend.get_texts():
+            text.set_color("white")
+            
         self.canvas_boundary.draw()
         
     def create_menu(self):
@@ -285,18 +294,28 @@ class NeuralNetSimulatorGUI:
         
         # Helper to plot raw data before classifier is ready
         markers = ('o', 's')
-        colors = ('red', 'blue')
+        colors = ('#ff3333', '#33adff') # Vibrant colors for dark bg
         # Handle binary classification for now
         unique_y = np.unique(self.y)
         for idx, cl in enumerate(unique_y):
             self.ax_boundary.scatter(x=self.X[self.y == cl, 0], 
                             y=self.X[self.y == cl, 1],
-                            alpha=0.8, 
+                            alpha=0.9, 
                             c=colors[idx % len(colors)],
                             marker=markers[idx % len(markers)], 
                             label=f'Class {cl}', 
-                            edgecolor='black')
-        self.ax_boundary.legend(loc='upper left')
+                            edgecolor='white',
+                            s=60)
+                            
+        self.ax_boundary.tick_params(colors='white')
+        
+        legend = self.ax_boundary.legend(loc='upper left', frameon=True)
+        frame = legend.get_frame()
+        frame.set_facecolor('#2b2b2b')
+        frame.set_edgecolor('#555555')
+        for text in legend.get_texts():
+            text.set_color("white")
+            
         self.canvas_boundary.draw()
         
         self.log_message(f"Data generated. Samples: {len(self.y)}")
