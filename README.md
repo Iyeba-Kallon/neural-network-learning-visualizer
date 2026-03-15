@@ -48,9 +48,3 @@ python main.py
 4. **Train**: Click **Start Training**. Watch the three right-hand panes animate in real-time as the model attempts to classify your data!
 5. **Reset & Experiment**: Use the **Stop** and **Reset** buttons to halt training or start over with different configurations. Try training a standard Perceptron on XOR data to see it fail, then switch to MLP with at least one hidden layer to see it succeed!
 
-## Future Enhancements / To-Do
-
-- [ ] Connect the output of the Network Drawer activation visualizer to show real-time neuron firing intensity.
-- [ ] Add more complex optimizers for MLP (e.g., Adam, RMSprop).
-- [ ] Implement multi-class classification (currently binary classification).
-- [ ] Export trained weights/models capability.
