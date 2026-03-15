@@ -17,23 +17,56 @@ import data_generator
 from utils import logic_gate_data, accuracy, mse
 
 class NeuralNetSimulatorGUI:
+    """
+    The main Graphical User Interface for the Neural Network Simulator.
+    Manages the layout, user interactions, and the main training event loop.
+    """
     def __init__(self, root):
+        """
+        Initialize the GUI and set up the main application state.
+
+        Args:
+            root (customtkinter.CTk): The root window object.
+        """
         self.root = root
         self.root.title("Advanced Neural Network Learning Simulator")
         self.root.geometry("1600x900")
         
-        # Style
+        # Configure Look and Feel
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
         
-        # --- Main Layout ---
+        # --- Main Layout Architecture ---
+        self._initialize_layout()
         self.create_menu()
+        self._setup_panels()
         
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_columnconfigure(1, weight=4)
-        self.root.grid_columnconfigure(2, weight=1)
+        # --- Application Control State ---
+        self.is_playing = False
+        self.current_epoch = 0
+        self.algorithm = None
+        self.X = None
+        self.y = None
+        self.history = {'loss': [], 'accuracy': []}
+        
+        # --- Visualization Engines ---
+        # Note: Axes are created in setup_center_panel
+        self.vis = Visualizer(self.ax_boundary)
+        self.net_drawer = NetworkDrawer(self.ax_network)
+        
+        # --- Event Bindings ---
+        # Connect plot interactions (for Manual Dataset mode)
+        self.canvas_boundary.mpl_connect('button_press_event', self.on_click)
+
+    def _initialize_layout(self):
+        """Configure the grid weights for the main window resize behavior."""
+        self.root.grid_columnconfigure(0, weight=1) # Left Sidebar
+        self.root.grid_columnconfigure(1, weight=4) # Center Plot Area
+        self.root.grid_columnconfigure(2, weight=1) # Right Event Log
         self.root.grid_rowconfigure(0, weight=1)
-        
+
+    def _setup_panels(self):
+        """Instantiate the main containers for each UI section."""
         self.left_panel = ctk.CTkScrollableFrame(self.root, width=300, corner_radius=10)
         self.left_panel.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         
@@ -43,84 +76,79 @@ class NeuralNetSimulatorGUI:
         self.right_panel = ctk.CTkFrame(self.root, width=300, corner_radius=10)
         self.right_panel.grid(row=0, column=2, padx=10, pady=10, sticky="nsew")
         
+        # Initialize sub-component widgets
         self.setup_left_panel()
         self.setup_center_panel()
         self.setup_right_panel()
-        
-        # Controller State
-        self.is_playing = False
-        self.current_epoch = 0
-        self.algorithm = None
-        self.X = None
-        self.y = None
-        self.history = {'loss': [], 'accuracy': []}
-        
-        # Visualizers (Init with placeholder axes, will be set in setup_center_panel)
-        # We need to initialize them AFTER setup_center_panel creates the axes
-        self.vis = Visualizer(self.ax_boundary)
-        self.net_drawer = NetworkDrawer(self.ax_network)
-        
-        # Connect click event
-        self.canvas_boundary.mpl_connect('button_press_event', self.on_click)
 
     def on_click(self, event):
-        if event.inaxes != self.ax_boundary:
-            return
-        if self.dataset_var.get() != "Manual":
+        """
+        Handle mouse click events on the decision boundary plot.
+        Used to manually add data points when "Manual" mode is selected.
+        
+        Args:
+            event (matplotlib.backend_bases.MouseEvent): The click event.
+        """
+        if event.inaxes != self.ax_boundary or self.dataset_var.get() != "Manual":
             return
             
-        # Left click: Class 0, Right click: Class 1
-        # Matplotlib event.button: 1=Left, 3=Right
+        # Left click (1) -> Class 0, Right click (3) -> Class 1
         label = 0 if event.button == 1 else 1
         
-        # Coordinates
         x, y = event.xdata, event.ydata
-        if x is None or y is None: return
+        if x is None or y is None: 
+            return
         
+        # Append to dataset
         new_point = np.array([[x, y]])
         new_label = np.array([label])
         
         if self.X is None:
-            self.X = new_point
-            self.y = new_label
+            self.X, self.y = new_point, new_label
         else:
             self.X = np.vstack([self.X, new_point])
             self.y = np.hstack([self.y, new_label])
             
-        self.log_message(f"Added point ({x:.2f}, {y:.2f}) -> Class {label}")
-        
-        # Re-plot
+        self.log_message(f"Point added: ({x:.2f}, {y:.2f}) -> Class {label}")
+        self._repaint_manual_data()
+
+    def _repaint_manual_data(self):
+        """Redraw the manually entered data points on the plot."""
         self.ax_boundary.clear()
         markers = ('o', 's')
-        colors = ('#ff3333', '#33adff') # Dark theme friendly colors
+        colors = ('#ff3333', '#33adff')
         
-        # Helper to plot raw data
         for idx, cl in enumerate(np.unique(self.y)):
-            # Ensure safe indexing into colors/markers
             c_idx = int(cl) % len(colors)
             m_idx = int(cl) % len(markers)
             
-            self.ax_boundary.scatter(x=self.X[self.y == cl, 0], 
-                            y=self.X[self.y == cl, 1],
-                            alpha=0.9, 
-                            c=colors[c_idx],
-                            marker=markers[m_idx], 
-                            label=f'Class {cl}', 
-                            edgecolor='white',
-                            s=60)
+            mask = (self.y == cl)
+            self.ax_boundary.scatter(x=self.X[mask, 0], 
+                                     y=self.X[mask, 1],
+                                     alpha=0.9, 
+                                     c=colors[c_idx],
+                                     marker=markers[m_idx], 
+                                     label=f'Class {cl}', 
+                                     edgecolor='white',
+                                     s=60)
         
-        self.ax_boundary.set_xlim(min(self.X[:,0])-1, max(self.X[:,0])+1)
-        self.ax_boundary.set_ylim(min(self.X[:,1])-1, max(self.X[:,1])+1)
+        # Set viewport padding around points
+        margin = 1.0
+        self.ax_boundary.set_xlim(min(self.X[:,0]) - margin, max(self.X[:,0]) + margin)
+        self.ax_boundary.set_ylim(min(self.X[:,1]) - margin, max(self.X[:,1]) + margin)
         self.ax_boundary.tick_params(colors='white')
         
-        legend = self.ax_boundary.legend(loc='upper left', frameon=True)
+        self._style_plot_legend(self.ax_boundary)
+        self.canvas_boundary.draw()
+
+    def _style_plot_legend(self, ax):
+        """Apply a professional dark theme to the plot legend."""
+        legend = ax.legend(loc='upper left', frameon=True)
         frame = legend.get_frame()
         frame.set_facecolor('#2b2b2b')
         frame.set_edgecolor('#555555')
         for text in legend.get_texts():
             text.set_color("white")
-            
-        self.canvas_boundary.draw()
         
     def create_menu(self):
         menubar = tk.Menu(self.root)
@@ -135,18 +163,15 @@ class NeuralNetSimulatorGUI:
         self.root.config(menu=menubar)
 
     def setup_left_panel(self):
-        # -- Algorithm Selection --
-        algo_label = ctk.CTkLabel(self.left_panel, text="Algorithm Selection", font=ctk.CTkFont(size=16, weight="bold"))
-        algo_label.pack(fill=tk.X, padx=5, pady=(5, 10))
-        
+        """Construct the sidebar for model selection and parameter configuration."""
+        # 1. Algorithm Selection
+        self._add_section_header(self.left_panel, "Algorithm Selection")
         self.algo_var = ctk.StringVar(value="Perceptron")
-        ctk.CTkRadioButton(self.left_panel, text="Perceptron", variable=self.algo_var, value="Perceptron").pack(anchor=tk.W, pady=2)
-        ctk.CTkRadioButton(self.left_panel, text="Adaline", variable=self.algo_var, value="Adaline").pack(anchor=tk.W, pady=2)
-        ctk.CTkRadioButton(self.left_panel, text="MLP", variable=self.algo_var, value="MLP").pack(anchor=tk.W, pady=(2, 10))
+        for algo in ["Perceptron", "Adaline", "MLP"]:
+            ctk.CTkRadioButton(self.left_panel, text=algo, variable=self.algo_var, value=algo).pack(anchor=tk.W, pady=2)
         
-        # -- Hyperparameters --
-        hp_label = ctk.CTkLabel(self.left_panel, text="Hyperparameters", font=ctk.CTkFont(size=16, weight="bold"))
-        hp_label.pack(fill=tk.X, padx=5, pady=(15, 10))
+        # 2. Universal Hyperparameters
+        self._add_section_header(self.left_panel, "Hyperparameters", pady=(15, 10))
         
         ctk.CTkLabel(self.left_panel, text="Learning Rate (η):").pack(anchor=tk.W)
         self.lr_scale = ctk.CTkSlider(self.left_panel, from_=0.0001, to=1.0, number_of_steps=1000)
@@ -158,9 +183,8 @@ class NeuralNetSimulatorGUI:
         self.epochs_entry.insert(0, "50")
         self.epochs_entry.pack(fill=tk.X, pady=(0, 10))
         
-        # -- MLP Specific --
-        mlp_label = ctk.CTkLabel(self.left_panel, text="MLP Config", font=ctk.CTkFont(size=16, weight="bold"))
-        mlp_label.pack(fill=tk.X, padx=5, pady=(15, 10))
+        # 3. MLP-Specific Configuration
+        self._add_section_header(self.left_panel, "MLP Config", pady=(15, 10))
         
         ctk.CTkLabel(self.left_panel, text="Hidden Layers (e.g., 4):").pack(anchor=tk.W)
         self.hidden_layers_entry = ctk.CTkEntry(self.left_panel)
@@ -172,16 +196,19 @@ class NeuralNetSimulatorGUI:
         activations = ["Sigmoid", "Tanh", "ReLU", "Hardlim", "Hardlims"]
         ctk.CTkOptionMenu(self.left_panel, variable=self.activation_var, values=activations).pack(fill=tk.X, pady=(0, 10))
 
-        # -- Dataset --
-        data_label = ctk.CTkLabel(self.left_panel, text="Dataset", font=ctk.CTkFont(size=16, weight="bold"))
-        data_label.pack(fill=tk.X, padx=5, pady=(15, 10))
-        
+        # 4. Dataset Selection
+        self._add_section_header(self.left_panel, "Dataset", pady=(15, 10))
         self.dataset_var = ctk.StringVar(value="Linear")
         datasets = ["Linear", "AND", "OR", "XOR", "Circles", "Moons", "Spiral", "Manual", "Custom (CSV/TXT)"]
         ctk.CTkOptionMenu(self.left_panel, variable=self.dataset_var, values=datasets).pack(fill=tk.X, pady=(0, 10))
         
         ctk.CTkButton(self.left_panel, text="Generate/Load Data", command=self.generate_data).pack(fill=tk.X, pady=10)
         ctk.CTkLabel(self.left_panel, text="(Manual: L-Click=0, R-Click=1)", font=("Arial", 10)).pack(anchor=tk.W)
+
+    def _add_section_header(self, parent, text, pady=(5, 10)):
+        """Utility to add a bold section header to a panel."""
+        header = ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=16, weight="bold"))
+        header.pack(fill=tk.X, padx=5, pady=pady)
 
 
     def setup_center_panel(self):
